@@ -15,14 +15,14 @@ import cv2
 # ESP32 Configuration - FIXED
 ESP32_URL = os.getenv('ESP32_URL')
 if not ESP32_URL:
-    print("❌ ERROR: ESP32_URL environment variable not set!")
+    print("ERROR: ESP32_URL environment variable not set!")
     print("Set it with: export ESP32_URL='192.168.1.100'")
     exit(1)
 
 if not ESP32_URL.startswith('http'):
     ESP32_URL = f"http://{ESP32_URL}"
 
-print(f"🤖 ESP32 URL configured as: {ESP32_URL}")
+print(f"ESP32 URL configured as: {ESP32_URL}")
 
 class ESP32Client:
     """Enhanced ESP32 client with better error handling"""
@@ -34,7 +34,7 @@ class ESP32Client:
         """Send emotion to ESP32 with retry logic"""
         for attempt in range(max_retries):
             try:
-                print(f"📤 Sending emotion: {sentiment} (attempt {attempt + 1}/{max_retries})")
+                print(f"Sending emotion: {sentiment} (attempt {attempt + 1}/{max_retries})")
                 
                 response = requests.post(
                     f"{self.base_url}/receive",
@@ -44,29 +44,29 @@ class ESP32Client:
                 )
                 
                 if response.status_code == 200:
-                    print(f"✅ Emotion '{sentiment}' sent successfully!")
+                    print(f"Emotion '{sentiment}' sent successfully!")
                     return True
                 else:
-                    print(f"❌ ESP32 returned status {response.status_code}: {response.text}")
+                    print(f"ESP32 returned status {response.status_code}: {response.text}")
                     
             except requests.exceptions.Timeout:
-                print(f"⏰ Emotion request timeout (attempt {attempt + 1})")
+                print(f"Emotion request timeout (attempt {attempt + 1})")
             except requests.exceptions.ConnectionError:
-                print(f"🔌 Connection error (attempt {attempt + 1})")
+                print(f"Connection error (attempt {attempt + 1})")
             except Exception as e:
-                print(f"❌ Unexpected error sending emotion: {e}")
+                print(f"Unexpected error sending emotion: {e}")
             
             if attempt < max_retries - 1:
                 await asyncio.sleep(1)
         
-        print(f"💥 Failed to send emotion '{sentiment}' after {max_retries} attempts")
+        print(f"Failed to send emotion '{sentiment}' after {max_retries} attempts")
         return False
     
     async def reset_robot(self, max_retries: int = 2) -> bool:
         """Reset ESP32 to default state - FIXED TIMING"""
         for attempt in range(max_retries):
             try:
-                print(f"🔄 Resetting ESP32 (attempt {attempt + 1}/{max_retries})")
+                print(f"Resetting ESP32 (attempt {attempt + 1}/{max_retries})")
                 
                 response = requests.post(
                     f"{self.base_url}/reset",
@@ -74,18 +74,18 @@ class ESP32Client:
                 )
                 
                 if response.status_code == 200:
-                    print("✅ ESP32 reset successful!")
+                    print("ESP32 reset successful!")
                     return True
                 else:
-                    print(f"❌ Reset failed with status {response.status_code}")
+                    print(f"Reset failed with status {response.status_code}")
                     
             except Exception as e:
-                print(f"❌ Reset error: {e}")
+                print(f"Reset error: {e}")
             
             if attempt < max_retries - 1:
                 await asyncio.sleep(1)
         
-        print("💥 Failed to reset ESP32")
+        print("Failed to reset ESP32")
         return False
     
     async def test_connection(self) -> bool:
@@ -129,72 +129,72 @@ async def main():
     esp32_client = ESP32Client(ESP32_URL)
     
     # Test ESP32 connection at startup
-    print("🔍 Testing ESP32 connection...")
+    print("Testing ESP32 connection...")
     if not await esp32_client.test_connection():
-        print("❌ Cannot connect to ESP32! Please check:")
+        print("Cannot connect to ESP32! Please check:")
         print("1. ESP32 IP address is correct")
         print("2. ESP32 is powered on and running")
         print("3. Both devices are on same WiFi network")
         return
     
-    print("✅ ESP32 connection successful!")
+    print("ESP32 connection successful!")
     
     try:
-        print("🚀 Starting system with coordinated head tracking...")
+        print("Starting system with coordinated head tracking...")
         
         # STEP 1: Start the shared camera manager
-        print("📹 Starting camera manager...")
+        print("Starting camera manager...")
         camera_manager.start()
         await asyncio.sleep(2)
-        print("✅ Camera manager started successfully")
+        print("Camera manager started successfully")
         
         # STEP 2: Start coordinated head tracking
-        print("🎯 Starting head tracking thread...")
+        print("Starting head tracking thread...")
         head_thread = start_head_tracking_thread()
         await asyncio.sleep(1)
-        print("✅ Head tracking started and running in background")
+        print("Head tracking started and running in background")
         
         # STEP 3: Main conversation loop
-        print("💬 Starting main conversation loop...")
+        print("Starting main conversation loop...")
         conversation_count = 0
         
         while True:
             try:
                 conversation_count += 1
-                print(f"\n--- 🗣  Conversation {conversation_count} ---")
+                print(f"\n---  Conversation {conversation_count} ---")
                 
                 # Capture audio and image
-                print("🎤 Capturing audio and image...")
+                print("Capturing audio and image...")
                 text = await asyncio.to_thread(capture_both_simultaneously)
                 
                 if not text or text.strip() == "":
-                    print("⏭  No text captured, continuing...")
+                    print("No text captured, continuing...")
                     await asyncio.sleep(1)
                     continue
                 
-                print(f"📝 Captured text: {text[:100]}...")
+                print(f"Captured text: {text[:100]}...")
                 
                 # Apply median filter to image
-                print("🔧 Applying median filter...")
+                print("Applying median filter...")
                 await asyncio.to_thread(apply_median_filter)
                 
                 # Run emotion and sentiment analysis
-                print("🧠 Running emotion and sentiment analysis...")
+                print("Running emotion and sentiment analysis...")
                 emotions, sentiment = await asyncio.to_thread(
                     run_parallel_analysis, 'final_image.jpg', text
                 )
-                print(f"😊 Detected sentiment: {sentiment}")
-                print(f"🎭 Detected emotions: {emotions}")
+                print(f"Detected sentiment: {sentiment}")
+                print(f"Detected emotions: {emotions}")
                 
                 # ENHANCED LOGIC: Check both sentiment and emotion
                 should_process, reason = should_process_emotion_response(sentiment, emotions)
-                print(f"🤔 Decision: {reason}")
+                print(f"Decision: {reason}")
                 
                 if should_process:
-                    print(f"🎭 Processing emotion response - Reason: {reason}")
+                    print(f"Processing emotion response - Reason: {reason}")
                     
                     # STEP A: Pause head tracking IMMEDIATELY
-                    print("⏸  Pausing head tracking for emotion processing...")
+                    print("Pausing head tracking for emotion processing...")
                     pause_head_tracking()
                     await asyncio.sleep(0.5)
                     
@@ -202,73 +202,74 @@ async def main():
                     emotion_sent = await esp32_client.send_emotion(sentiment)
                     
                     if not emotion_sent:
-                        print("⚠  Emotion sending failed, but continuing...")
+                        print("Emotion sending failed, but continuing...")
                     
                     # STEP C: Generate response
-                    print("🤖 Generating response...")
+                    print("Generating response...")
                     response = await asyncio.to_thread(output_of_model, text, emotions)
-                    print(f"💬 Response: {response[:100]}...")
+                    print(f"Response: {response[:100]}...")
                     
                     # STEP D: Speak response and WAIT for completion
-                    print("🔊 Speaking response...")
+                    print("Speaking response...")
                     await speak_text_async(response)
-                    print("✅ Speech completed!")
+                    print("Speech completed!")
                     
                     # STEP E: Wait a moment after speech completes
-                    print("⏳ Waiting 2 seconds after speech completion...")
+                    print("Waiting 2 seconds after speech completion...")
                     await asyncio.sleep(2)
                     
                     # STEP F: NOW send reset AFTER speech is completely done
-                    print("🔄 Sending reset acknowledgment AFTER speech completion...")
+                    print("Sending reset acknowledgment AFTER speech completion...")
+                    await asyncio.sleep(5)
                     reset_success = await esp32_client.reset_robot()
                     if reset_success:
-                        print("✅ Reset acknowledgment sent successfully after speech!")
+                        print("Reset acknowledgment sent successfully after speech!")
                     else:
-                        print("⚠  Reset acknowledgment failed, but continuing...")
+                        print("Reset acknowledgment failed, but continuing...")
                     
                     # STEP G: Wait before resuming head tracking
-                    print("⏳ Waiting 1 more second before resuming head tracking...")
+                    print("Waiting 1 more second before resuming head tracking...")
                     await asyncio.sleep(1)
                     
-                    print("▶  Resuming head tracking...")
+                    print("Resuming head tracking...")
                     resume_head_tracking()
                     
-                    print("✅ Complete emotion processing sequence finished!\n")
+                    print("Complete emotion processing sequence finished!\n")
                 
                 else:
-                    print("😐 No negative emotion or sentiment detected, continuing normal operation...")
+                    print("No negative emotion or sentiment detected, continuing normal operation...")
                 
                 # Small delay before next iteration
                 await asyncio.sleep(0.5)
                 
             except KeyboardInterrupt:
-                print("\n⌨  Keyboard interrupt detected...")
+                print("\nKeyboard interrupt detected...")
                 break
             except Exception as e:
-                print(f"❌ Error in main conversation loop: {e}")
-                print("🔄 Ensuring head tracking is resumed after error...")
+                print(f"Error in main conversation loop: {e}")
+                print("Ensuring head tracking is resumed after error...")
                 resume_head_tracking()
                 await asyncio.sleep(2)
                 continue
         
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down system...")
+        print("\nShutting down system...")
     except Exception as e:
-        print(f"💥 Critical error in main: {e}")
+        print(f"Critical error in main: {e}")
     finally:
         # STEP 4: Clean shutdown
-        print("🧹 Cleaning up...")
+        print("Cleaning up...")
         
-        print("🛑 Stopping head tracking...")
+        print("Stopping head tracking...")
         stop_head_tracking()
         
-        print("📹 Stopping camera manager...")
+        print("Stopping camera manager...")
         camera_manager.stop()
         
-        print("🪟 Closing OpenCV windows...")
+        print("Closing OpenCV windows...")
         cv2.destroyAllWindows()
         
-        print("✅ Shutdown complete!")
+        print("Shutdown complete!")
 
 if __name__ == "__main__":
     # Run the async main function

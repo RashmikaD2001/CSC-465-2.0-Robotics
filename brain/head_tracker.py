@@ -131,9 +131,9 @@ def track_head_loop():
     # Send initial count to get movement started
     try:
         resp = requests.post(ESP32_URL, json={"number": 0}, timeout=1)
-        print("✅ Initial head movement triggered")
+        print("Initial head movement triggered")
     except Exception as e:
-        print(f"❌ Failed to send initial head movement: {e}")
+        print(f"Failed to send initial head movement: {e}")
     
     while head_tracking_active:
         try:
