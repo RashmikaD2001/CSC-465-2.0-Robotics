@@ -10,7 +10,7 @@ def speak_text(text):
 
     # Set up config
     speech_config = speechsdk.SpeechConfig(subscription=api_key, region=region)
-    speech_config.speech_synthesis_voice_name = 'en-US-AnaNeural'
+    speech_config.speech_synthesis_voice_name = "en-US-SaraNeural"
 
     # Output to default speaker
     audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True)

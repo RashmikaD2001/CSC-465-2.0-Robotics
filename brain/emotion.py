@@ -92,7 +92,7 @@ def analyze_image_emotions(img_path):
 def most_dominant_emotion(result_dict):
 
     emotions = {"angry" : 6, "fear" : 5, "sad" : 4, "disgust" : 3, "surprise" : 2, "happy" : 1, "neutral" : 0}
-
+    
     result = 'neutral'
 
     if len(result_dict) > 0:
@@ -109,8 +109,8 @@ def is_negative_emotion(result_dict):
         return True
     else:
         return False
-
+    
 '''
-Type	Confidence-based decision fusion
-Style	Rule-based ensemble
+Type    Confidence-based decision fusion
+Style   Rule-based ensemble
 '''
