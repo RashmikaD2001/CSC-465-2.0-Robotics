@@ -287,7 +287,8 @@ void updateEyeDesign() {
   drawRightEye(current_emotion);
 }
 
-// ===== REQUEST PROCESSING =====
+// REPLACE the processPendingRequests() function in your ESP32 code with this fixed version:
+
 void processPendingRequests() {
   // Process emotion request
   if (pendingEmotion) {
@@ -338,67 +339,87 @@ void processPendingRequests() {
     }
   }
 
-  // Process head movement request
+  // Process head movement request - COMPLETELY REWRITTEN
   if (pendingHead) {
-  noInterrupts();
-  int number = pendingHeadNumber;
-  int angle = pendingHeadAngle;
-  pendingHead = false;
-  pendingHeadNumber = -1;
-  pendingHeadAngle = -1;
-  interrupts();
+    noInterrupts();
+    int number = pendingHeadNumber;
+    int angle = pendingHeadAngle;
+    pendingHead = false;
+    pendingHeadNumber = -1;
+    pendingHeadAngle = -1;
+    interrupts();
 
-  if (!emotion_mode_active && head_tracking_enabled) {
-    if (number != -1) {
-      // FIXED: Better head tracking logic based on person detection
-      int headAngle = 90; // Default center
-      
-      if (number == 0) {
-        // No person detected - return to center slowly
-        headAngle = 90;
-        Serial.println("HEAD: No person detected -> centering");
-      } 
-      else if (number == 1) {
-        // One person - this should come with position data
-        // For now, we'll add some variation to test movement
-        static int lastPersonAngle = 90;
-        static unsigned long lastPersonTime = 0;
+    if (!emotion_mode_active && head_tracking_enabled) {
+      // DIRECT ANGLE CONTROL - This always works
+      if (angle != -1) {
+        int safeAngle = constrain(angle, headState.minPos, headState.maxPos);
+        Serial.print("HEAD: Moving to direct angle ");
+        Serial.println(safeAngle);
+        moveServoSafely(headServo, headState, safeAngle);
+      }
+      // PERSON COUNT CONTROL - COMPLETELY REWRITTEN FOR CONTINUOUS MOVEMENT
+      else if (number != -1) {
+        static unsigned long lastMoveTime = 0;
+        static int currentDirection = 1; // 1 for right, -1 for left
+        static int movementSpeed = 5;    // degrees per movement
         unsigned long currentTime = millis();
         
-        // Add some realistic head movement for single person tracking
-        if (currentTime - lastPersonTime > 2000) { // Every 2 seconds, slight adjustment
-          lastPersonAngle = 90 + random(-20, 21); // Random between 70-110
-          lastPersonTime = currentTime;
+        // ALWAYS MOVE - regardless of person count (this fixes the 0 person issue)
+        if (currentTime - lastMoveTime > 2000) { // Move every 2 seconds
+          int newAngle;
+          
+          if (number == 0) {
+            // NO PEOPLE: Gentle scanning motion (slow sweep)
+            newAngle = headState.currentPos + (currentDirection * movementSpeed);
+            
+            // Reverse direction if we hit bounds
+            if (newAngle >= headState.maxPos) {
+              newAngle = headState.maxPos;
+              currentDirection = -1;
+            } else if (newAngle <= headState.minPos) {
+              newAngle = headState.minPos;
+              currentDirection = 1;
+            }
+            
+            Serial.print("HEAD: No people - scanning to angle ");
+            Serial.println(newAngle);
+          }
+          else if (number >= 1) {
+            // PEOPLE DETECTED: More active tracking with larger movements
+            movementSpeed = 8; // Faster movement when people present
+            newAngle = headState.currentPos + (currentDirection * movementSpeed);
+            
+            // Add some randomness for more natural tracking
+            if (random(0, 100) < 30) { // 30% chance to change direction
+              currentDirection *= -1;
+            }
+            
+            // Reverse direction if we hit bounds
+            if (newAngle >= headState.maxPos) {
+              newAngle = headState.maxPos;
+              currentDirection = -1;
+            } else if (newAngle <= headState.minPos) {
+              newAngle = headState.minPos;
+              currentDirection = 1;
+            }
+            
+            Serial.print("HEAD: Tracking ");
+            Serial.print(number);
+            Serial.print(" person(s) - moving to angle ");
+            Serial.println(newAngle);
+          }
+          
+          // ALWAYS execute the movement
+          moveServoSafely(headServo, headState, newAngle);
+          lastMoveTime = currentTime;
         }
-        headAngle = lastPersonAngle;
-        Serial.print("HEAD: Tracking 1 person -> angle ");
-        Serial.println(headAngle);
       }
-      else if (number > 1) {
-        // Multiple people - look between them
-        headAngle = 70 + random(0, 41); // Random between 70-110 to simulate looking between people
-        Serial.print("HEAD: Tracking ");
-        Serial.print(number);
-        Serial.print(" people -> angle ");
-        Serial.println(headAngle);
+    } else {
+      if (debug_mode) {
+        Serial.println("HEAD: Movement blocked (emotion mode active or tracking disabled)");
       }
-      
-      headAngle = constrain(headAngle, headState.minPos, headState.maxPos);
-      moveServoSafely(headServo, headState, headAngle);
-    } 
-    else if (angle != -1) {
-      // Direct angle control (this works correctly)
-      int safeAngle = constrain(angle, headState.minPos, headState.maxPos);
-      Serial.print("HEAD: Moving to direct angle ");
-      Serial.println(safeAngle);
-      moveServoSafely(headServo, headState, safeAngle);
-    }
-  } else {
-    if (debug_mode) {
-      Serial.println("HEAD: Movement blocked (emotion mode active or tracking disabled)");
     }
   }
-}
 
   // Process reset request
   if (pendingReset) {
@@ -417,6 +438,26 @@ void processPendingRequests() {
     moveServoSafely(leftArmServo, leftArmState, 180);
     moveServoSafely(rightArmServo, rightArmState, 0);
   }
+}
+
+// ===== ADDITIONAL DEBUG FUNCTION =====
+// Add this function to help debug head movement issues
+
+void debugHeadTracking() {
+  Serial.println("=== HEAD TRACKING DEBUG ===");
+  Serial.print("Current head position: ");
+  Serial.println(headState.currentPos);
+  Serial.print("Target head position: ");
+  Serial.println(headState.targetPos);
+  Serial.print("Head moving: ");
+  Serial.println(headState.moving ? "Yes" : "No");
+  Serial.print("Emotion mode active: ");
+  Serial.println(emotion_mode_active ? "Yes" : "No");
+  Serial.print("Head tracking enabled: ");
+  Serial.println(head_tracking_enabled ? "Yes" : "No");
+  Serial.print("Pending head requests: ");
+  Serial.println(pendingHead ? "Yes" : "No");
+  Serial.println("===========================");
 }
 
 // ===== WEB SERVER HANDLERS =====
@@ -742,9 +783,9 @@ server.on("/head_position", HTTP_POST,
   Serial.println("================================\n");
 }
 
-// ===== MAIN LOOP =====
 void loop() {
   unsigned long now = millis();
+  static unsigned long lastDebugTime = 0;
   
   // Process any pending requests from web handlers
   processPendingRequests();
@@ -765,6 +806,12 @@ void loop() {
     moveServoSafely(headServo, headState, 90);
     moveServoSafely(leftArmServo, leftArmState, 180);
     moveServoSafely(rightArmServo, rightArmState, 0);
+  }
+  
+  // Add head tracking debug info every 10 seconds
+  if (debug_mode && now - lastDebugTime > 10000) {
+    lastDebugTime = now;
+    debugHeadTracking();
   }
   
   // WiFi health monitoring

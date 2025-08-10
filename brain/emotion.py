@@ -101,6 +101,15 @@ def most_dominant_emotion(result_dict):
                 result = result_dict[person]['emotion']
     return result
 
+def is_negative_emotion(result_dict):
+
+    result = most_dominant_emotion(result_dict)
+
+    if result in ['angry', 'fear', 'sad', 'disgust']:
+        return True
+    else:
+        return False
+
 '''
 Type	Confidence-based decision fusion
 Style	Rule-based ensemble

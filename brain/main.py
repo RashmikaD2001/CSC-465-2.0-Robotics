@@ -26,7 +26,7 @@ print(f"🤖 ESP32 URL configured as: {ESP32_URL}")
 class ESP32Client:
     """Enhanced ESP32 client with better error handling"""
     
-    def __init__(self, base_url: str):  # FIXED: Changed from _init_ to __init__
+    def __init__(self, base_url: str):
         self.base_url = base_url.rstrip('/')
         
     async def send_emotion(self, sentiment: str, max_retries: int = 3) -> bool:
@@ -39,7 +39,7 @@ class ESP32Client:
                     f"{self.base_url}/receive",
                     json={"sentiment": sentiment},
                     headers={'Content-Type': 'application/json'},
-                    timeout=8  # Increased timeout for emotion requests
+                    timeout=8
                 )
                 
                 if response.status_code == 200:
@@ -56,13 +56,13 @@ class ESP32Client:
                 print(f"❌ Unexpected error sending emotion: {e}")
             
             if attempt < max_retries - 1:
-                await asyncio.sleep(1)  # Wait before retry
+                await asyncio.sleep(1)
         
         print(f"💥 Failed to send emotion '{sentiment}' after {max_retries} attempts")
         return False
     
     async def reset_robot(self, max_retries: int = 2) -> bool:
-        """Reset ESP32 to default state"""
+        """Reset ESP32 to default state - FIXED TIMING"""
         for attempt in range(max_retries):
             try:
                 print(f"🔄 Resetting ESP32 (attempt {attempt + 1}/{max_retries})")
@@ -95,8 +95,12 @@ class ESP32Client:
         except:
             return False
 
+async def speak_text_async(text: str):
+    """Async wrapper for speak_text that we can await properly"""
+    return await asyncio.to_thread(speak_text, text)
+
 async def main():
-    """Main conversation loop with improved ESP32 communication"""
+    """Main conversation loop with FIXED RESET TIMING"""
     
     # Initialize ESP32 client
     esp32_client = ESP32Client(ESP32_URL)
@@ -171,33 +175,42 @@ async def main():
                     pause_head_tracking()
                     await asyncio.sleep(0.5)
                     
-                    # STEP B: Send emotion data with retry - FIXED VERSION
+                    # STEP B: Send emotion data
                     emotion_sent = await esp32_client.send_emotion(sentiment)
                     
                     if not emotion_sent:
                         print("⚠  Emotion sending failed, but continuing...")
                     
-                    # STEP C: Generate and speak response
+                    # STEP C: Generate response
                     print("🤖 Generating response...")
                     response = await asyncio.to_thread(output_of_model, text, emotions)
                     print(f"💬 Response: {response[:100]}...")
                     
+                    # STEP D: Speak response and WAIT for completion
                     print("🔊 Speaking response...")
-                    await asyncio.to_thread(speak_text, response)
+                    await speak_text_async(response)
+                    print("✅ Speech completed!")
                     
-                    # STEP D: Reset ESP32 and resume head tracking
-                    reset_success = await esp32_client.reset_robot()
-                    if not reset_success:
-                        print("⚠  Reset failed, but continuing...")
-                    
-                    # STEP E: Wait before resuming head tracking
-                    print("⏳ Waiting before resuming head tracking...")
+                    # STEP E: Wait a moment after speech completes
+                    print("⏳ Waiting 2 seconds after speech completion...")
                     await asyncio.sleep(2)
+                    
+                    # STEP F: NOW send reset AFTER speech is completely done
+                    print("🔄 Sending reset acknowledgment AFTER speech completion...")
+                    reset_success = await esp32_client.reset_robot()
+                    if reset_success:
+                        print("✅ Reset acknowledgment sent successfully after speech!")
+                    else:
+                        print("⚠  Reset acknowledgment failed, but continuing...")
+                    
+                    # STEP G: Wait before resuming head tracking
+                    print("⏳ Waiting 1 more second before resuming head tracking...")
+                    await asyncio.sleep(1)
                     
                     print("▶  Resuming head tracking...")
                     resume_head_tracking()
                     
-                    print("✅ Emotion processing complete!\n")
+                    print("✅ Complete emotion processing sequence finished!\n")
                 
                 else:
                     print("😐 No strong emotion detected, continuing normal operation...")

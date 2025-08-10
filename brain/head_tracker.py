@@ -7,6 +7,7 @@ from camera_manager import camera_manager
 import os
 import threading
 
+# MISSING GLOBAL VARIABLES - FIXED
 ESP32 = os.getenv('ESP32_URL')
 ESP32_URL = f"http://{ESP32}/head"  # Use /head endpoint for head tracking
 
@@ -17,9 +18,9 @@ head_tracking_active = True
 emotion_mode_active = False
 last_people_count = -1  # Track previous count to avoid unnecessary requests
 last_successful_send = 0
-REQUEST_COOLDOWN = 2.0  # Minimum 2 seconds between head tracking requests
+REQUEST_COOLDOWN = 1.0  # Reduced from 2.0 seconds for more responsive movement
 
-# Thread lock for coordination
+# Thread lock for coordination - THIS WAS MISSING
 tracking_lock = threading.Lock()
 
 def detect_people_from_frame(frame):
@@ -57,7 +58,7 @@ def detect_people_from_frame(frame):
         return 0
 
 def send_people_count_to_esp32(number):
-    """Send people count to ESP32 with improved error handling and rate limiting"""
+    """Send people count to ESP32 with improved error handling and rate limiting - FIXED"""
     global last_people_count, last_successful_send, emotion_mode_active
     
     with tracking_lock:
@@ -70,9 +71,7 @@ def send_people_count_to_esp32(number):
         if current_time - last_successful_send < REQUEST_COOLDOWN:
             return False
         
-        # Skip if count hasn't changed (reduce unnecessary requests)
-        if number == last_people_count:
-            return False
+        # REMOVED duplicate count check for continuous movement
     
     data = {"number": number}
     
@@ -83,17 +82,21 @@ def send_people_count_to_esp32(number):
         if resp.status_code == 200:
             last_people_count = number
             last_successful_send = current_time
-            print(f"Head tracking sent: {number} people")
+            # Only log occasionally to reduce spam
+            if current_time % 5 < 1:
+                print(f"Head tracking active: {number} people")
             return True
         else:
-            print(f"ESP32 head tracking failed: {resp.status_code}")
+            if current_time % 10 < 1:  # Log errors less frequently
+                print(f"ESP32 head tracking failed: {resp.status_code}")
             return False
             
     except requests.exceptions.Timeout:
-        print("Head tracking timeout (normal if ESP32 is processing emotion)")
+        # Don't log timeout errors for head tracking (expected during emotion processing)
         return False
     except requests.exceptions.ConnectionError:
-        print("Head tracking connection error")
+        if current_time % 15 < 1:  # Log connection errors even less frequently
+            print("Head tracking connection error")
         return False
     except Exception as e:
         print(f"Head tracking error: {e}")
@@ -115,12 +118,22 @@ def resume_head_tracking():
     print("Head tracking RESUMED")
 
 def track_head_loop():
-    """Main tracking loop - MODIFIED for better coordination"""
+    """Main tracking loop - FIXED with proper globals and error handling"""
     global head_tracking_active
     
-    print("Starting coordinated head tracking...")
+    print("Starting coordinated head tracking with ALWAYS-ON movement...")
     detection_failures = 0
     max_failures = 5
+    
+    # Force initial movement after system startup
+    time.sleep(2)  # Let system initialize
+    
+    # Send initial count to get movement started
+    try:
+        resp = requests.post(ESP32_URL, json={"number": 0}, timeout=1)
+        print("✅ Initial head movement triggered")
+    except Exception as e:
+        print(f"❌ Failed to send initial head movement: {e}")
     
     while head_tracking_active:
         try:
@@ -145,11 +158,12 @@ def track_head_loop():
             # Detect people
             count = detect_people_from_frame(frame)
             
-            # Send to ESP32 (with built-in rate limiting and duplicate detection)
+            # ALWAYS send to ESP32 (with built-in rate limiting)
+            # ESP32 will handle continuous movement logic
             send_people_count_to_esp32(count)
             
-            # Longer sleep to reduce CPU usage and request frequency
-            time.sleep(1.5)  # Increased from 1 second
+            # Shorter sleep for more responsive movement
+            time.sleep(1.0)  # Reduced from 1.5 seconds
             
         except Exception as e:
             print(f"Error in head tracking loop: {e}")
