@@ -9,6 +9,7 @@ from analysis import run_parallel_analysis
 from filter import apply_median_filter
 from head_tracker import start_head_tracking_thread, pause_head_tracking, resume_head_tracking, stop_head_tracking
 from camera_manager import camera_manager
+from emotion import is_negative_emotion  # Import the new function
 import cv2
 
 # ESP32 Configuration - FIXED
@@ -95,12 +96,34 @@ class ESP32Client:
         except:
             return False
 
+def should_process_emotion_response(sentiment: str, emotions_dict: dict) -> tuple[bool, str]:
+    """
+    Enhanced decision logic for emotion processing
+    
+    Returns:
+        tuple: (should_process, reason)
+    """
+    # Step 1: Check if sentiment is negative
+    sentiment_is_negative = sentiment_of_conversation(sentiment=sentiment)
+    
+    # Step 2: Check if facial emotions are negative
+    emotion_is_negative = is_negative_emotion(emotions_dict)
+    
+    if sentiment_is_negative and emotion_is_negative:
+        return True, "Both sentiment and emotion are negative"
+    elif sentiment_is_negative and not emotion_is_negative:
+        return True, "Sentiment is negative (emotion positive/neutral)"
+    elif not sentiment_is_negative and emotion_is_negative:
+        return True, "Emotion is negative (sentiment positive)"
+    else:
+        return False, "Both sentiment and emotion are positive/neutral"
+
 async def speak_text_async(text: str):
     """Async wrapper for speak_text that we can await properly"""
     return await asyncio.to_thread(speak_text, text)
 
 async def main():
-    """Main conversation loop with FIXED RESET TIMING"""
+    """Main conversation loop with ENHANCED EMOTION-SENTIMENT LOGIC"""
     
     # Initialize ESP32 client
     esp32_client = ESP32Client(ESP32_URL)
@@ -161,21 +184,21 @@ async def main():
                     run_parallel_analysis, 'final_image.jpg', text
                 )
                 print(f"😊 Detected sentiment: {sentiment}")
+                print(f"🎭 Detected emotions: {emotions}")
                 
-                # Check if we should show emotion
-                should_show_emotion = await asyncio.to_thread(
-                    sentiment_of_conversation, sentiment=sentiment
-                )
+                # ENHANCED LOGIC: Check both sentiment and emotion
+                should_process, reason = should_process_emotion_response(sentiment, emotions)
+                print(f"🤔 Decision: {reason}")
                 
-                if should_show_emotion:
-                    print(f"🎭 Processing emotion: {sentiment}")
+                if should_process:
+                    print(f"🎭 Processing emotion response - Reason: {reason}")
                     
                     # STEP A: Pause head tracking IMMEDIATELY
                     print("⏸  Pausing head tracking for emotion processing...")
                     pause_head_tracking()
                     await asyncio.sleep(0.5)
                     
-                    # STEP B: Send emotion data
+                    # STEP B: Send emotion data (use sentiment for consistency with ESP32)
                     emotion_sent = await esp32_client.send_emotion(sentiment)
                     
                     if not emotion_sent:
@@ -213,7 +236,7 @@ async def main():
                     print("✅ Complete emotion processing sequence finished!\n")
                 
                 else:
-                    print("😐 No strong emotion detected, continuing normal operation...")
+                    print("😐 No negative emotion or sentiment detected, continuing normal operation...")
                 
                 # Small delay before next iteration
                 await asyncio.sleep(0.5)
