@@ -18,7 +18,7 @@ def speak_to_microphone(text_queue):
         speechsdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, '5000'
     )
     recognizer.properties.set_property(
-        speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, '1500'
+        speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, '3000'
     )
 
     print("Listening to microphone...")

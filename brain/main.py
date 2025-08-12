@@ -216,11 +216,16 @@ async def main():
                     
                     # STEP E: Wait a moment after speech completes
                     print("Waiting 2 seconds after speech completion...")
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1)
                     
                     # STEP F: NOW send reset AFTER speech is completely done
                     print("Sending reset acknowledgment AFTER speech completion...")
-                    await asyncio.sleep(5)
+                    
+                    # STEP F: Wait 3 seconds, THEN send reset AFTER speech is completely done
+                    print("Waiting 1 seconds before sending reset acknowledgment...")
+                    await asyncio.sleep(1)
+                    
+                    print("Sending reset acknowledgment AFTER speech completion...")
                     reset_success = await esp32_client.reset_robot()
                     if reset_success:
                         print("Reset acknowledgment sent successfully after speech!")
@@ -229,7 +234,7 @@ async def main():
                     
                     # STEP G: Wait before resuming head tracking
                     print("Waiting 1 more second before resuming head tracking...")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.2)
                     
                     print("Resuming head tracking...")
                     resume_head_tracking()
@@ -249,7 +254,7 @@ async def main():
                 print(f"Error in main conversation loop: {e}")
                 print("Ensuring head tracking is resumed after error...")
                 resume_head_tracking()
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
                 continue
         
     except KeyboardInterrupt:

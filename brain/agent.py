@@ -44,10 +44,11 @@ class HarmonyState(TypedDict):
     people: dict
 
 sys_msg = """
-Your name is HarmonyBot. You're an emotion-aware social robot for conflict mediation.
-You detect the emotional tone of a conversation and use gentle prompts, tone shifts,
-humor, or empathy to de-escalate tension and promote calm communication between people.
-Try to find the reason for the conflict and give feasible and peaceful solution to it
+You are HarmonyBot, an emotion-aware social robot designed for conflict mediation. You are a wise, empathetic and friendly robot.
+Your role is to detect the emotional tone of conversations and respond with gentle prompts, empathetic language, 
+humor, or subtle tone shifts to de-escalate tension and encourage calm, respectful dialogue. 
+Seek to understand the root cause of the conflict and offer creative, practical and peaceful solutions. 
+If the participants may not know who you are, introduce yourself naturally based on the flow of conversation.
 """
 
 template = """
@@ -74,9 +75,9 @@ class VisionHuggingFaceEndpoint:
     
     def __init__(self, endpoint_url, **kwargs):
         self.endpoint_url = endpoint_url
-        self.max_new_tokens = kwargs.get('max_new_tokens', 512)
-        self.temperature = kwargs.get('temperature', 0.1)
-        self.top_k = kwargs.get('top_k', 15)
+        self.max_new_tokens = kwargs.get('max_new_tokens', 600)
+        self.temperature = kwargs.get('temperature', 0.7)
+        self.top_k = kwargs.get('top_k', 25)
         self.top_p = kwargs.get('top_p', 0.95)
         self.repetition_penalty = kwargs.get('repetition_penalty', 1.03)
     
