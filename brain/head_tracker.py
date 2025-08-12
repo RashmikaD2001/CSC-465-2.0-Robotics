@@ -126,7 +126,7 @@ def track_head_loop():
     max_failures = 5
     
     # Force initial movement after system startup
-    time.sleep(2)  # Let system initialize
+    time.sleep(0.5)  # Let system initialize
     
     # Send initial count to get movement started
     try:
@@ -149,7 +149,7 @@ def track_head_loop():
                 detection_failures += 1
                 if detection_failures > max_failures:
                     print("Too many camera failures, pausing head tracking")
-                    time.sleep(5)
+                    time.sleep(1)
                     detection_failures = 0
                 continue
             
@@ -163,11 +163,11 @@ def track_head_loop():
             send_people_count_to_esp32(count)
             
             # Shorter sleep for more responsive movement
-            time.sleep(1.0)  # Reduced from 1.5 seconds
+            time.sleep(0.5)  # Reduced from 1.5 seconds
             
         except Exception as e:
             print(f"Error in head tracking loop: {e}")
-            time.sleep(2)  # Longer wait on error
+            time.sleep(1)  # Longer wait on error
 
 def start_head_tracking_thread():
     """Start head tracking in a daemon thread"""

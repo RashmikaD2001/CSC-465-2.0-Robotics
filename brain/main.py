@@ -216,14 +216,14 @@ async def main():
                     
                     # STEP E: Wait a moment after speech completes
                     print("Waiting 2 seconds after speech completion...")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)
                     
                     # STEP F: NOW send reset AFTER speech is completely done
                     print("Sending reset acknowledgment AFTER speech completion...")
                     
                     # STEP F: Wait 3 seconds, THEN send reset AFTER speech is completely done
                     print("Waiting 1 seconds before sending reset acknowledgment...")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)
                     
                     print("Sending reset acknowledgment AFTER speech completion...")
                     reset_success = await esp32_client.reset_robot()
